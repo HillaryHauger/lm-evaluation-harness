@@ -90,6 +90,7 @@ class HFLM(TemplateLM):
         delta: Optional[str] = None,
         autogptq: Optional[Union[bool, str]] = False,
         gptqmodel: Optional[bool] = False,
+        hqq: Optional[bool] = False,
         gguf_file: Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -201,6 +202,7 @@ class HFLM(TemplateLM):
                 delta=delta,
                 autogptq=autogptq,
                 gptqmodel=gptqmodel,
+                hqq=hqq,
                 gguf_file=gguf_file,
                 **kwargs,
             )
@@ -543,6 +545,7 @@ class HFLM(TemplateLM):
         delta: Optional[str] = None,
         autogptq: Optional[Union[bool, str]] = False,
         gptqmodel: Optional[bool] = False,
+        hqq: Optional[bool] = False,
         gguf_file: Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -571,7 +574,7 @@ class HFLM(TemplateLM):
             )
         )
 
-        if not autogptq and not gptqmodel:
+        if not autogptq and not gptqmodel and not hqq:
             if model_kwargs.get("load_in_4bit", None):
                 assert transformers.__version__ >= "4.30.0", (
                     "load_in_4bit requires transformers >= 4.30.0"
@@ -628,6 +631,23 @@ class HFLM(TemplateLM):
                 self._model = GPTQModel.from_quantized(
                     pretrained, trust_remote_code=trust_remote_code, **model_kwargs
                 )
+            if hqq:
+                try:
+                    from hqq.models.hf.base import AutoHQQHFModel
+                except ModuleNotFoundError as exception:
+                    raise type(exception)(
+                        "Tried to load hqq, but hqq is not installed ",
+                        "please install hqq via `pip install hqq`",
+                    )
+                hqq_model_path = model_kwargs.pop("hqq_model_path", None)
+                if hqq_model_path is None:
+                    raise ValueError(
+                        "hqq_model_path must be provided when using hqq=True"
+                    )
+                self._model = AutoHQQHFModel.from_quantized(hqq_model_path,
+                                                            **model_kwargs
+                )
+
 
         if peft and delta:
             raise ValueError(
