@@ -585,7 +585,6 @@ class HFLM(TemplateLM):
                         model_kwargs["bnb_4bit_compute_dtype"] = get_dtype(
                             model_kwargs["bnb_4bit_compute_dtype"]
                         )
-
             self._model = self.AUTO_MODEL_CLASS.from_pretrained(
                 pretrained,
                 revision=revision,
@@ -633,12 +632,14 @@ class HFLM(TemplateLM):
                 )
             if hqq:
                 try:
-                    from hqq.models.hf.base import AutoHQQHFModel
+                    #from hqq.models.hf.base import AutoHQQHFModel
+                    from transformers import AutoModelForCausalLM
                 except ModuleNotFoundError as exception:
                     raise type(exception)(
                         "Tried to load hqq, but hqq is not installed ",
                         "please install hqq via `pip install hqq`",
                     )
+                """
                 hqq_model_path = model_kwargs.pop("hqq_model_path", None)
                 if hqq_model_path is None:
                     raise ValueError(
@@ -646,8 +647,11 @@ class HFLM(TemplateLM):
                     )
                 self._model = AutoHQQHFModel.from_quantized(hqq_model_path,
                                                             **model_kwargs
-                )
-
+                )"""
+                self._model = AutoModelForCausalLM.from_pretrained(
+                    pretrained,
+                    **model_kwargs)
+                print(self._model.dtype)
 
         if peft and delta:
             raise ValueError(
